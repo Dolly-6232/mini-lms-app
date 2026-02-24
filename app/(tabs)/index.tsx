@@ -1,98 +1,147 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { OptimizedCourseList } from '@/components/OptimizedCourseList';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { loadCoursesAsync, setSearchQuery, toggleBookmarkAsync } from '@/store/slices/coursesSlice';
+import { borderRadius, colors, createStyles, fontSize, spacing } from '@/utils/styles';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
-}
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+const styles = createStyles({
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  scrollView: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  header: {
+    padding: spacing.lg,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  title: {
+    fontSize: fontSize['2xl'],
+    fontWeight: 'bold' as const,
+    color: colors.gray[900],
+    marginBottom: spacing.md,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: fontSize.base,
+    backgroundColor: colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  errorText: {
+    fontSize: fontSize.base,
+    color: colors.error,
+    textAlign: 'center' as const,
+    margin: spacing.lg,
   },
 });
+
+export default function CoursesScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  
+  const coursesState = useAppSelector((state: any) => state.courses) as any;
+  const authState = useAppSelector((state: any) => state.auth) as any;
+  
+  const filteredCourses = React.useMemo(() => {
+    const { courses, searchQuery } = coursesState;
+    if (!searchQuery?.trim()) {
+      return courses || [];
+    }
+    
+    const lowercaseQuery = searchQuery.toLowerCase();
+    return (courses || []).filter(
+      (course: any) =>
+        course.title?.toLowerCase().includes(lowercaseQuery) ||
+        course.description?.toLowerCase().includes(lowercaseQuery) ||
+        course.instructor?.name?.toLowerCase().includes(lowercaseQuery) ||
+        course.category?.toLowerCase().includes(lowercaseQuery)
+    );
+  }, [coursesState.courses, coursesState.searchQuery]);
+  
+  const isLoading = coursesState.isLoading || false;
+  const error = coursesState.error;
+  const searchQuery = coursesState.searchQuery || '';
+
+  useEffect(() => {
+    // Courses are loaded in the tabs layout, but we can reload if needed
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(loadCoursesAsync()).unwrap();
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
+
+  const handleCoursePress = (course: any) => {
+    router.push(`/course/${course.id}` as any);
+  };
+
+  const handleBookmark = (courseId: string) => {
+    dispatch(toggleBookmarkAsync(courseId));
+  };
+
+  const handleSearch = (query: string) => {
+    dispatch(setSearchQuery(query));
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary[600]} />
+      </View>
+    );
+  }
+
+  return (
+    <LinearGradient
+      colors={[colors.primary[50], colors.gray[50]]}
+      style={styles.container}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Discover Courses</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search courses, instructors..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+      </View>
+
+      {error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : (
+        <OptimizedCourseList
+          courses={filteredCourses}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          onCoursePress={handleCoursePress}
+          onBookmark={handleBookmark}
+          searchQuery={searchQuery}
+        />
+      )}
+    </LinearGradient>
+  );
+}
