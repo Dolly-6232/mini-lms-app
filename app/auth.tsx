@@ -137,6 +137,24 @@ export default function AuthScreen() {
             { text: 'Try Again', style: 'cancel', onPress: () => {} }
           ]
         );
+      } else if (error.message?.includes('Invalid credentials') || error.message?.includes('Incorrect password') || error.message?.includes('password is incorrect')) {
+        Alert.alert(
+          '🔐 Incorrect Password',
+          'The password you entered is incorrect. Please:\n\n• Check your password spelling\n• Ensure Caps Lock is off\n• Reset your password if needed',
+          [
+            { text: 'Try Again', style: 'default', onPress: () => setPassword('') },
+            { text: 'Reset Password', style: 'cancel', onPress: () => {} }
+          ]
+        );
+      } else if (error.message?.includes('Invalid email') || error.message?.includes('email not found') || error.message?.includes('email format')) {
+        Alert.alert(
+          '📧 Invalid Email',
+          'The email address you entered is not valid. Please:\n\n• Check email spelling\n• Include @domain.com\n• Use a different email',
+          [
+            { text: 'Try Again', style: 'default', onPress: () => setEmail('') },
+            { text: 'Create Account', style: 'cancel', onPress: () => setIsLogin(false) }
+          ]
+        );
       } else if (error.message?.includes('Username must be lowercase') || error.message?.includes('status: 422')) {
         if (error.message?.includes('Username is required')) {
           Alert.alert('⚠️ Username Required', 'Please enter a username to continue.');

@@ -3,7 +3,7 @@ import { enrollCourseAsync, selectBookmarks, selectCourses, toggleBookmarkAsync 
 import { borderRadius, colors, createStyles, fontSize, spacing } from '@/utils/styles';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -185,10 +185,43 @@ export default function CourseDetailsScreen() {
     if (!course) return;
 
     try {
+      console.log('Enrolling in course:', course.id);
       await dispatch(enrollCourseAsync(course.id)).unwrap();
-      Alert.alert('Success', 'You have been enrolled in this course!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to enroll in course. Please try again.');
+      
+      Alert.alert(
+        '🎉 Enrollment Successful!', 
+        `You have been successfully enrolled in "${course.title || 'this course'}"!\n\nYou can now access all course materials and start learning.`,
+        [
+          { 
+            text: 'Start Learning', 
+            style: 'default',
+            onPress: () => console.log('Navigate to course content')
+          },
+          { 
+            text: 'Browse More Courses', 
+            style: 'cancel',
+            onPress: () => router.back()
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.log('Enrollment error:', error);
+      
+      Alert.alert(
+        '❌ Enrollment Failed',
+        'We couldn\'t enroll you in this course at the moment. This might be because:\n\n• The course is full\n• Server is experiencing issues\n• Network connection problem\n\nPlease try again in a few moments.',
+        [
+          { 
+            text: 'Try Again', 
+            style: 'default',
+            onPress: () => handleEnroll() // Retry enrollment
+          },
+          { 
+            text: 'Cancel', 
+            style: 'cancel'
+          }
+        ]
+      );
     }
   };
 

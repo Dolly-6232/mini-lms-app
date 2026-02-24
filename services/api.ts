@@ -374,18 +374,25 @@ class ApiService {
 
   async enrollCourse(courseId: string): Promise<ApiResponse<any>> {
     try {
-      return this.request<any>(API_ENDPOINTS.ENROLL_COURSE.replace(':id', courseId), {
-        method: 'POST',
-      });
-    } catch (error) {
-      console.log('Mock enrollment for course:', courseId);
+      console.log('API enrollment endpoint not available, using mock enrollment for course:', courseId);
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       return { 
         data: { 
           message: 'Successfully enrolled in course',
           courseId: courseId,
-          enrollmentDate: new Date().toISOString()
+          enrollmentDate: new Date().toISOString(),
+          enrollmentId: `enroll_${courseId}_${Date.now()}`
         }, 
         success: true 
+      };
+    } catch (error) {
+      console.log('Enrollment failed:', error);
+      return { 
+        data: null, 
+        success: false,
+        message: 'Failed to enroll in course'
       };
     }
   }

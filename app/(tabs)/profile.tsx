@@ -3,7 +3,7 @@ import { logoutAsync } from '@/store/slices/authSlice';
 import { borderRadius, colors, createStyles, fontSize, spacing } from '@/utils/styles';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Image,
@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+const fallbackImage = require("../../assets/images/download.jpg");
 
 const styles = createStyles({
   container: {
@@ -151,6 +153,7 @@ const styles = createStyles({
 
 export default function ProfileScreen() {
   const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const dispatch = useAppDispatch();
   const user = useAppSelector((state: any) => state.auth.user) as any;
 
@@ -171,7 +174,9 @@ export default function ProfileScreen() {
         quality: 0.7,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const selectedImage = result.assets[0];
+        setAvatarUri(selectedImage.uri);
         Alert.alert('Success', 'Profile picture updated successfully!');
       }
     } catch (error) {
@@ -215,12 +220,16 @@ export default function ProfileScreen() {
       <View style={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <Image
-              source={{ 
-                uri: user.avatar || 'https://via.placeholder.com/100x100' 
-              }}
-              style={styles.avatar}
-            />
+           <Image
+              source={avatarUri ? { uri: avatarUri } : (user.avatar ? fallbackImage:{ uri: user.avatar } )}
+              style={[
+                styles.avatar,
+                avatarUri && {
+                  borderWidth: 3,
+                  borderColor: colors.primary[600],
+                }
+              ]}
+            />          
             <TouchableOpacity
               style={styles.avatarEditButton}
               onPress={handleImagePicker}
